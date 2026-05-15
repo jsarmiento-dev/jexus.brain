@@ -1,7 +1,7 @@
 # 🤖 Gentleman Programming — Índice de Videos sobre IA
 
 > **Canal:** [@gentlemanprogramming](https://www.youtube.com/@gentlemanprogramming)
-> **Última actualización:** 2026-05-15
+> **Última actualización:** 2026-05-15 (transcripción obtenida para video #3 → análisis actualizado con contenido real)
 > **Total videos analizados:** 43
 
 ---

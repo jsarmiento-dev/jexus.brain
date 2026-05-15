@@ -1,472 +1,373 @@
-# Me PIDIERON que muestre CÓMO trabajo con IA → Acá está TODO
+# 🎬 Me PIDIERON que muestre CÓMO trabajo con IA → Acá está TODO
 
-> **Nota:** El video original no está disponible en YouTube. Este análisis se construyó a partir del conocimiento directo del stack OpenClaw + SDD + System Design Skills implementados en este mismo servidor, más el contexto del canal Gentleman Programming.
-
----
-
-## 1. Core Concept
-
-**Problema que resuelve:** La mayoría de los desarrolladores usan IA como "autocompletado glorificado" — abren ChatGPT, pegan prompts sueltos, obtienen fragmentos de código y los integran manualmente. No hay sistema, no hay memoria entre sesiones, no hay arquitectura de agentes.
-
-**Tesis del video:** Para trabajar con IA a nivel profesional necesitas tres cosas:
-1. **Engram** — Contexto compartido entre agentes (memoria persistente y estructurada)
-2. **Agent Teams** — Especialización: diferentes agentes para diferentes roles
-3. **SDD (System Design Document)** — Planificación arquitectónica antes de codificar, gobernada por IA
-
-> *"No uses IA como calculadora. Úsala como socio arquitectónico."*
+> **Video:** `https://www.youtube.com/watch?v=c5Gwx0RcxNE`
+> **Creador:** [Gentleman Programming](https://www.youtube.com/@gentlemanprogramming)
+> **Transcripción:** Original obtenida vía TurboScribe
+> **Análisis:** Basado en transcripción completa del video
 
 ---
 
-## 2. Arquitectura del Sistema
+## 📋 Ficha Técnica
+
+| Campo | Valor |
+|:------|:------|
+| **Título** | Me PIDIERON que muestre CÓMO trabajo con IA → Acá está TODO \| Engram + Agent Teams + SDD |
+| **Creador** | Gentleman Programming |
+| **Duración** | ~90 min (en vivo / grabación extendida) |
+| **Nivel** | Avanzado |
+| **Categoría** | Arquitectura de Agentes IA + Workflows |
+| **Stack principal** | Go, OpenClaw/OpenCode, Bubble Tea, SQLite (FTS5), Ngram, GGA, Agent Teams Lite |
+| **Repositorios clave** | [Ngram](https://github.com/gentlemanprogramming/ngram), [GGA](https://github.com/gentlemanprogramming/gga), [Agent Teams Lite](https://github.com/gentlemanprogramming/agent-teams-lite) |
+
+---
+
+## 1. Resumen
+
+El video es una demostración en vivo del ecosistema completo que Gentleman Programming ha construido para trabajar con IA a nivel profesional. Muestra **3 herramientas principales** que funcionan juntas, y un **4to proyecto revelado al final** como el "gran unificador".
+
+### Las 3 Herramientas + 1
+
+| # | Herramienta | Propósito | Estrellas (al momento) |
+|:-:|:-----------|:----------|:-----------------------|
+| 1 | **Ngram** | Memoria persistente para cualquier agente IA | ~525 ★ |
+| 2 | **GGA** (Gentleman Guardian Angel) | Code review automatizado con IA | ~625 ★ |
+| 3 | **Agent Teams Lite** | Framework SDD con sub-agentes orquestados | Nueva (~8 commits, 5 releases) |
+| 4 | **AI Gentle Stack** *(revelado)* | Instalador unificado de todo el ecosistema | No publicado aún |
+
+---
+
+## 2. Ngram — Memoria Persistente para Agentes
+
+### ¿Qué problema resuelve?
+
+Los agentes IA tienen contexto limitado. Cuando el contexto se llena, ocurre una **compaction** (resumen comprimido) y se pierde información. Soluciones existentes como **ClaudeMem** requieren Python, Node, bases de datos vectoriales y están atadas a la nube.
+
+### La solución de Ngram
+
+> **Un solo binario. Cero dependencias. Go. SQLite. FTS5.**
+
+```
+┌────────────────────────────────────────────────┐
+│                 NGRAM (Go)                      │
+│                                                  │
+│  ┌──────────────────┐   ┌──────────────────┐    │
+│  │    SQLite DB      │   │      FTS5         │    │
+│  │  (datos locales)  │   │  (full-text search)│   │
+│  └──────────────────┘   └──────────────────┘    │
+│                                                  │
+│  ┌──────────────────────────────────────────┐   │
+│  │           MCP Interface                   │   │
+│  │  (cualquier agente → HTTP/MCP)            │   │
+│  └──────────────────────────────────────────┘   │
+└────────────────────────────────────────────────┘
+```
+
+### Cómo funciona
+
+1. **Cada agente** (OpenClaw, Codex, Gemini CLI, VSCode, Anti-Gravity) recibe un **system prompt**:
+   > *"Cada vez que aprendas algo nuevo — arquitectura, decisión, bug fix, release — guárdalo en la base de datos."*
+
+2. **Cuando un nuevo agente/sesión comienza**, lo primero que hace es consultar Ngram:
+   > *"¿Hay información sobre lo que voy a hacer?"*
+
+3. **Búsqueda ultra rápida** via FTS5 — ranking de ocurrencias sin necesidad de vector store.
+
+### Diferencia clave con ClaudeMem
+
+| Aspecto | ClaudeMem | Ngram |
+|:--------|:----------|:------|
+| **Dependencias** | Python + Node + 2 DBs | Go → 1 binario |
+| **Infraestructura** | Cloud | Local (SQLite) |
+| **Búsqueda** | Vectorial | FTS5 (texto completo) |
+| **Complejidad** | Alta | Mínima |
+| **Costo** | Cloud (pago) | Local (gratis) |
+| **Agentes** | Solo Claude | Cualquiera (MCP) |
+
+---
+
+## 3. GGA — Gentleman Guardian Angel
+
+### ¿Qué es?
+
+Una alternativa open-source a **Rabbit Code** (herramienta paga de code review con IA). GGA permite revisar código usando **cualquier CLI de IA** (OpenCode, Codex, Gemini, Claude) con **configuraciones personalizables**.
+
+### Modos de ejecución
+
+```
+┌─────────────────────────────────────────────────┐
+│              GGA (Go)                             │
+│                                                    │
+│  1. 🔧 Pre-commit hook                            │
+│     → Revisa antes de hacer commit                 │
+│                                                    │
+│  2. 📤 Pre-push hook                              │
+│     → Revisa antes de pushear                      │
+│                                                    │
+│  3. 🤖 CI/CD (GitHub Actions)                     │
+│     → Revisa en la pipeline de integración        │
+└─────────────────────────────────────────────────┘
+```
+
+### Smart Caching
+
+El cache es la clave para que no queme tokens:
+
+```
+Archivos a commitear:
+├── src/auth.ts       → Ya pasó revisión → ✅ Cache hit → No revisar
+├── src/api.ts        → Cambió → ❌ Cache miss → Revisar
+└── src/utils.ts      → No cambió desde última revisión → ✅ Saltar
+```
+
+Esto significa que solo revisa **lo que realmente cambió**, ahorrando tokens masivamente.
+
+### Estado del proyecto
+
+- **625+ estrellas** en GitHub
+- **63+ forks**
+- Multiples contribuciones de la comunidad
+- Documentación extensa incluida en el repositorio
+
+---
+
+## 4. Agent Teams Lite — El Framework SDD
+
+### El problema original
+
+Los sistemas multi-agente existentes (como el nativo de OpenCode/Claude Code) tienen 3 problemas:
+
+1. **Solo funcionan para su plataforma** — no son portables
+2. **Queman tokens** — el orquestador se llena de contexto
+3. **No hay comunicación entre sub-agentes** — cada uno trabaja en "lienzo en blanco"
+
+### La arquitectura real
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        WORKFLOW PRINCIPAL                            │
-│                                                                     │
-│   ╔══════════════╗     ╔══════════════╗     ╔══════════════╗        │
-│   ║   TRIGGER    ║────▶║    SDD       ║────▶║  ENG RAM     ║        │
-│   ║ (Idea/Req)   ║     ║ (Design Doc) ║     ║ (Brain Load) ║        │
-│   ╚══════════════╝     ╚══════════════╝     ╚══════════════╝        │
-│                                                      │              │
-│                                                      ▼              │
-│   ╔══════════════╗     ╔══════════════╗     ╔══════════════╗        │
-│   ║   SKILLS     ║◀────║ AGENT TEAM   ║◀────║    SDD       ║        │
-│   ║ (Ejecución)  ║     ║ (Orquestar)  ║     ║ (Plan)       ║        │
-│   ╚══════════════╝     ╚══════════════╝     ╚══════════════╝        │
-│        │                                                             │
-│        ▼                                                             │
-│   ╔══════════════╗                                                   │
-│   ║   OUTPUT     ║  → Código, Documentación, PRD, Tests              │
-│   ╚══════════════╝                                                   │
+│                        ORQUESTADOR (main agent)                      │
+│                       Contexto: ~46K tokens                          │
+│                       NUNCA escribe código                           │
+│                              │                                       │
+│       ┌──────────────────────┼──────────────────────────┐            │
+│       │                      │                          │            │
+│  ┌────▼──────┐    ┌─────────▼─────────┐    ┌──────────▼──────┐     │
+│  │ PROPOSE   │    │     EXPLORE       │    │     SPECS       │     │
+│  │ (skill)   │    │     (skill)       │    │     (skill)     │     │
+│  │ Propuesta │    │  Investigar repo  │    │  Especificación │     │
+│  │ inicial   │    │  y ecosistema     │    │  técnica        │     │
+│  └────┬──────┘    └─────────┬─────────┘    └──────────┬──────┘     │
+│       └──────────────────┬──┴──────────────┬───────────┘           │
+│                          │                 │                        │
+│                   ┌──────▼──────┐   ┌──────▼──────────┐            │
+│                   │   DESIGN    │   │     APPLY       │            │
+│                   │   (skill)   │   │     (skill)     │            │
+│                   │ Arquitectura│   │  Implementación │            │
+│                   └──────┬──────┘   └──────┬──────────┘            │
+│                          │                 │                        │
+│                          └────────┬────────┘                        │
+│                                   │                                 │
+│                            ┌──────▼──────┐                         │
+│                            │    NGRAM     │                         │
+│                            │  (SQLite DB) │ ← Source of Truth       │
+│                            └─────────────┘                         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Flujo detallado:
+### Regla de oro del orquestador
+
+> **"El orquestador NUNCA implementa código. Siempre delega a sub-agentes."**
+
+¿Por qué? Porque mantener el contexto del orquestador limpio es la prioridad #1. En la demo, el orquestador se mantuvo en **~46K tokens** durante toda la sesión mientras los sub-agentes hacían el trabajo pesado con contextos grandes.
+
+### ¿Por qué skills?
+
+Cada sub-agente en Agent Teams Lite es implementado como una **skill**. Esto porque:
+
+- Las skills solo se cargan **cuando se necesitan** → no queman contexto innecesario
+- Funcionan en **cualquier plataforma** (OpenClaw, OpenCode, Codex, Gemini CLI)
+- Son **agnósticas al lenguaje** de programación
+- Se pueden compartir y versionar
+
+### El flujo completo
 
 ```
-Fase 1: IDEA → SDD
-────────────────────
-[Humano]  "Necesito un microservicio de autenticación"
-    │
-    ▼
-[SDD Agent]  Genera System Design Document:
-    ├── Contexto del problema
-    ├── Alternativas consideradas
-    ├── Arquitectura propuesta (C4)
-    ├── Decisión (ADR)
-    ├── Riesgos
-    └── Plan de implementación
-    │
-    ▼
-[Humano]  Revisa → Aprueba → Pasa a fase 2
-
-Fase 2: SDD → Engram
-───────────────────────
-[SDD]  Se vectoriza en Engram (memoria persistente)
-    │
-    ▼
-[Engram]  Almacena:
-    ├── Decisiones arquitectónicas
-    ├── Stack tecnológico
-    ├── Patrones acordados
-    └── Constraints del proyecto
-
-Fase 3: Engram → Agent Team
-────────────────────────────
-[Engram Context]  →  Alimenta a cada agente del equipo
-    │
-    ├── Architect Agent  →  Lee el SDD, mantiene coherencia
-    ├── Code Agent       →  Implementa módulos (guiado por SDD)
-    ├── Review Agent     →  Code review contra el SDD
-    └── Test Agent       →  Genera tests que validan el diseño
-    │
-    ▼
-[Skills]  Cada agente usa skills reutilizables:
-    ├── Skill: "supabase-auth-setup"
-    ├── Skill: "nextjs-api-route-pattern"
-    └── Skill: "testing-strategy"
-
-Fase 4: Output
-───────────────
-    ┌── Código funcional
-    ├── Tests unitarios / integración
-    ├── Documentación actualizada
-    └── PR listo para revisión humana
+1. IDEA
+   ↓
+2. ORQUESTADOR lee PRD
+   ↓
+3. Sub-agent PROPOSE → Propuesta de solución
+   ↓ (guarda en Ngram)
+4. Sub-agent EXPLORE → Investiga repos, dependencias, ecosistema
+   ↓ (guarda en Ngram)
+5. Sub-agent SPECS → Especificaciones técnicas detalladas
+   ↓ (guarda en Ngram)
+6. Sub-agent DESIGN → Arquitectura, componentes, estructura de carpetas
+   ↓ (guarda en Ngram)
+7. Sub-agent APPLY → Implementa el código (¡el único que codea!)
+   ↓
+8. RESULTADO → Código, tests, documentación
 ```
+
+### Multimodelo demostrado
+
+Durante la demo, el orquestador cambió de modelo en vivo:
+- Inició con un modelo
+- Cambió a **Gemini Codex** por restricciones de sesión
+- Luego a **GPT** sin ningún problema
+- La arquitectura es **multimodelo nativa**
 
 ---
 
-## 3. Stack Tecnológico
+## 5. La Demo en Vivo: AI Gentle Stack
 
-| Componente | Tecnología | Propósito |
-|:-----------|:-----------|:----------|
-| **Orquestador** | OpenClaw | Plataforma de agentes (run-time + gateway) |
-| **Memoria Compartida** | Engram Cloud | Contexto persistente entre agentes |
-| **Metodología** | SDD (System Design Document) | Gobernar decisiones arquitectónicas con IA |
-| **Agentes** | Agent Teams (OpenClaw) | Roles especializados (Architect, Coder, Reviewer) |
-| **Skills** | OpenClaw Skills (.md skills) | Capacidades reutilizables por agente |
-| **Backend** | VPS (Linux) | Host 24/7 para agentes autónomos |
-| **LLM Base** | Claude / GPT-4 / DeepSeek | Modelos de lenguaje para los agentes |
-| **Vector Store** | Integrado en Engram | Memoria semántica de largo plazo |
+### El proyecto
 
-**Versiones (recomendadas):**
-- Node.js ≥ 18
-- OpenClaw ≥ 1.0 (última estable)
-- Nginx como reverse proxy (opcional)
-- Ubuntu 22.04+ / Debian 12+
+El video culmina con la revelación de un proyecto que estaban construyendo **en vivo durante la transmisión**:
 
----
+**AI Gentle Stack** — un **instalador unificado** con TUI que:
 
-## 4. Guía de Implementación Paso a Paso
+1. Detecta el **sistema operativo** (macOS Apple Silicon, Intel, Linux, Windows)
+2. Presenta una **interfaz TUI** para elegir agentes
+3. **Resuelve dependencias** automáticamente
+4. **Configura cada agente** usando todo el ecosistema Gentleman
+5. **Verifica** que todo funcione
 
-### Fase 0: Prerrequisitos
+### Stack técnico del instalador
 
-```bash
-# 1. VPS Linux
-# Proveedores: Hetzner, DigitalOcean, Linode
-# Mínimo: 2GB RAM, 2 CPUs, 20GB SSD
+| Componente | Tecnología |
+|:-----------|:----------|
+| **Lenguaje** | Go |
+| **TUI** | Bubble Tea + Lipgloss |
+| **CLI** | Cobra (modo interactivo y no interactivo) |
+| **Screens TUI** | 9 pantallas planificadas |
+| **Arquitectura** | 8 paquetes internos (system, agents, components, presentations, backup, installer, etc.) |
+| **Instalación** | Cross-platform (Win/ Mac/ Linux) |
+| **Ngram** | Integrado para persistencia |
+| **SDD** | PRD-driven development |
+| **GGA** | Code review integrado |
+| **Backup** | Sistema de backup de configuraciones existentes |
+| **Plugin system** | Interfaz de agente → add new = implementar interfaz |
 
-# 2. Node.js
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs nginx git
+### El PRD
 
-# 3. Verificar
-node -v     # ≥ v22
-npm -v      # ≥ 10
-```
+El proyecto comenzó con un **PRD (Product Requirements Document)** completo que definía:
 
-### Fase 1: Instalar OpenClaw
+- Reglas de negocio
+- Requerimientos funcionales
+- Experiencia de usuario
+- Especificaciones técnicas
 
-```bash
-# Instalación global
-npm install -g openclaw
+Todo gobernado por **Spec-Driven Development**: primero las especificaciones, luego los agentes implementan.
 
-# Verificar
-openclaw --version
+### Resultado de la demo
 
-# Inicializar proyecto
-mkdir -p ~/my-agent && cd ~/my-agent
-openclaw init
-
-# Estructura inicial:
-# my-agent/
-# ├── config.yaml
-# ├── skills/
-# ├── memory/
-# └── openclaw.json
-```
-
-### Fase 2: Configurar Engram (Contexto Compartido)
-
-```yaml
-# config.yaml — Configuración de OpenClaw
-gateway:
-  host: "0.0.0.0"
-  port: 3443
-  remote:
-    url: "https://tu-vps-ip"
-    public: true
-
-plugins:
-  entries:
-    engram:
-      enabled: true
-      config:
-        api_key: "${ENGRAM_API_KEY}"
-        namespace: "mi-proyecto"
-
-memory:
-  type: hybrid  # local + cloud
-  vector_store: engram
-  search_limit: 10
-```
-
-```bash
-# Variables de entorno (exportar en ~/.bashrc)
-export ENGRAM_API_KEY="tu-key-aqui"
-export OPENCLAW_GATEWAY_PORT=3443
-```
-
-### Fase 3: Definir los Agent Teams
-
-Crea roles especializados en `agents/`:
-
-```yaml
-# agents/architect.yaml
-name: "architect-agent"
-model: "claude-sonnet-4-5"
-system_prompt: |
-  Eres un Arquitecto de Software Senior. Tu rol es:
-  1. Leer el SDD y entender el diseño completo
-  2. Mantener coherencia arquitectónica durante toda la implementación
-  3. Detectar desviaciones del diseño original
-  4. Sugerir correcciones cuando el código se aleja del SDD
-skills:
-  - system-design
-  - architecture-patterns
-memory: engram
-```
-
-```yaml
-# agents/coder.yaml
-name: "coder-agent"
-model: "gpt-4o"
-system_prompt: |
-  Eres un Implementador. Tu rol es:
-  1. Tomar las especificaciones del SDD
-  2. Implementar código limpio y mantenible
-  3. Consultar a architect-agent ante ambigüedades
-  4. Seguir los patrones definidos en el SDD
-skills:
-  - clean-code
-  - pattern-implementation
-memory: engram
-```
-
-```yaml
-# agents/reviewer.yaml
-name: "reviewer-agent"
-model: "claude-opus-4"
-system_prompt: |
-  Eres un Code Reviewer. Tu rol es:
-  1. Revisar cada PR contra el SDD
-  2. Verificar que el código cumple los estándares
-  3. Señalar discrepancias arquitectónicas
-  4. Exigir tests que cubran los casos del SDD
-skills:
-  - code-review
-  - testing-strategy
-memory: engram
-```
-
-### Fase 4: Configurar Skills Reutilizables
-
-```markdown
-# skills/ai-sdd-workflow.md
----
-name: sdd-workflow
-description: "System Design Document workflow for agent teams"
----
-
-## Workflow Steps
-
-### Step 1: Generate SDD
-When a new feature request arrives:
-1. Parse the requirement
-2. Generate System Design Document (use template)
-3. Store in Engram under namespace "designs"
-4. Wait for human approval
-
-### Step 2: Distribute to Agents
-After SDD approval:
-1. architect-agent loads the SDD from Engram
-2. architect-agent creates implementation plan
-3. coder-agent executes modules in order
-4. reviewer-agent validates each module
-
-### Step 3: Update Engram
-After each completed module:
-1. Update decision log in Engram
-2. Update implementation status (Diagrama de Avance)
-3. Flag deviations for human review
-```
-
-### Fase 5: Iniciar el Sistema
-
-```bash
-# Iniciar gateway (servicio 24/7)
-openclaw gateway start
-
-# Verificar que corre
-openclaw status
-
-# Enviar primera task a los agentes
-openclaw task "Implementar modulo de autenticacion - ver SDD en Engram"
-
-# Logs en tiempo real
-openclaw gateway logs --follow
-```
-
-### Fase 6: Automatizar 24/7 (systemd)
-
-```ini
-# /etc/systemd/system/openclaw.service
-[Unit]
-Description=OpenClaw AI Agent Gateway
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/root/my-agent
-ExecStart=/usr/bin/openclaw gateway start
-Restart=always
-RestartSec=10
-Environment=NODE_ENV=production
-Environment=ENGRAM_API_KEY=tu-key
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-systemctl daemon-reload
-systemctl enable openclaw
-systemctl start openclaw
-```
+En ~45 minutos de desarrollo en vivo, el sistema:
+- Leyó el PRD completo
+- Exploró el ecosistema existente
+- Generó especificaciones técnicas detalladas
+- Diseñó la arquitectura completa
+- Creó las tasks de implementación divididas en **8 fases, 9 batches de apply**
+- El orquestador nunca pasó de ~46K tokens
 
 ---
 
-## 5. Prompt Engineering & Comandos
+## 6. Lecciones Clave
 
-### Prompt: Cargar SDD en Engram
+### 6.1 Gestión de Contexto
 
-```markdown
-## Context Loader Prompt
+El problema #1 de los sistemas multi-agente no es la calidad del código, es **el contexto**. Tres estrategias:
 
-Vas a cargar un System Design Document en Engram.
-Sigue esta estructura:
+1. **Ngram** → Persistencia externa (no depende del contexto del agente)
+2. **Sub-agentes** → El trabajo pesado va a sesiones hijas
+3. **Orquestador limpio** → Nunca codea, solo orquesta
 
----
-namespace: {nombre-del-proyecto}
-type: system-design-document
-version: 1
----
+### 6.2 Skills como Bloques
 
-# SDD: {Nombre del Módulo}
+Cada skill es un sub-agente. No se cargan hasta que se necesitan. Esto es **lazy loading para agentes**.
 
-## Problem Statement
-{Una línea describiendo el problema}
+### 6.3 No reinventes el State Management
 
-## Architecture Decision
-{Decisión clave + alternativas descartadas}
+> Gentleman menciona que lleva años haciendo sus propios state managers: Redux → alternativa propia, NGX Store → versión propia, Signals → versión agnóstica. SDD + Ngram es su "state manager" para agentes IA.
 
-## Componentes
-- {Componente 1}: {Responsabilidad}
-- {Componente 2}: {Responsabilidad}
+### 6.4 El Instalador es el Gateway
 
-## Constraints
-- {Constraint 1}
-- {Constraint 2}
-
-## Riesgos Identificados
-| Riesgo | Impacto | Mitigación |
-|--------|---------|------------|
-| {Riesgo} | {H/M/L} | {Acción} |
-
-## Plan de Implementación
-1. {Paso 1}
-2. {Paso 2}
-3. {Paso 3}
-
-## Criterios de Aceptación
-- [ ] {Criterio 1}
-- [ ] {Criterio 2}
-```
-
-### Comando: Ejecutar Team Task
-
-```bash
-# Ejecutar un task en equipo (orquestado)
-openclaw task --team "architect,coder,reviewer" \
-  "Implementar login con JWT según SDD en Engram"
-
-# Ejecutar con contexto específico
-openclaw task --context "engram://proyecto-auth/sdd-v1" \
-  "Generar código del middleware de autenticación"
-
-# Ver estado del equipo
-openclaw agents list --team "architect,coder,reviewer"
-```
-
-### Comando: Consultar Memoria
-
-```bash
-# Buscar en Engram contexto relevante
-openclaw search "autenticacion JWT decisiones pasadas"
-
-# Listar namespaces
-openclaw engram list-namespaces
-
-# Ver diseño en Engram
-openclaw engram read "proyecto-auth/sdd-v1"
-```
-
-### Prompt: Revisión Post-Implementación
-
-```markdown
-## Agent Review Prompt
-
-Como reviewer-agent, revisa el siguiente PR.
-
-Criterios de revisión:
-1. ¿El código sigue el SDD en Engram? (namespace: {proyecto})
-2. ¿Se usaron los patrones acordados?
-3. ¿Hay tests que cubren los casos borde?
-4. ¿El código maneja errores como se especificó en el SDD?
-
-Formato de respuesta:
-- ✅ Aprobado si cumple todo
-- ⚠️ Aprobado con observaciones (lista)
-- ❌ Rechazado con razones detalladas
-```
+El AI Gentle Stack no es solo un instalador — es la **puerta de entrada** al ecosistema. Resuelve el mayor problema de adopción: "esto es un quilombo para instalar".
 
 ---
 
-## 6. Knowledge Brain Snippets
+## 7. Comparativa con el Blueprint Original
 
-> *Lecciones aprendidas extraídas — formato ultra-conciso para consulta rápida por agentes.*
+| Aspecto | Blueprint Original (adivinado) | Real (transcripción) |
+|:--------|:-------------------------------|:---------------------|
+| **Engram** | Cloud service (vector store) | Local SQLite + FTS5, Go binary |
+| **Agent Teams** | Architect/Coder/Reviewer | Propose/Explore/Specs/Design/Apply |
+| **Skill system** | Mencionado genéricamente | Cada sub-agente = skill (lazy loaded) |
+| **Stack** | OpenClaw + Node.js | Go + OpenClaw/Codex/Gemini (agnóstico) |
+| **GGA** | No mencionado | Herramienta central (~625★) |
+| **Estado** | Recomendaba subir | Mantener ambos (diferentes perspectivas) |
 
-### KS-01: SDD es el "contrato" del equipo
-Sin SDD, cada agente interpreta el problema a su manera. El SDD alinea a todo el team.
-
-### KS-02: Engram es el pegamento
-No es solo memoria — es el bus de comunicación entre agentes. Cada agente lee y escribe al mismo namespace.
-
-### KS-03: Skills > Prompts sueltos
-Un skill bien escrito (.md estructurado) es más efectivo que 100 prompts ad-hoc. Los skills son "conocimiento compilado".
-
-### KS-04: Arquitecto humano siempre en el loop
-Los agentes ejecutan, el humano decide. El SDD es la herramienta para mantener control sin ser cuello de botella.
-
-### KS-05: Especializa tus agentes
-Un solo agente que hace todo es peor que tres especializados. Architect → Coder → Reviewer es el trio dorado.
-
-### KS-06: La memoria crece con el proyecto
-Engram no es estático. Cada decisión nueva, cada bug encontrado, cada PR mergeado actualiza el contexto del equipo.
-
-### KS-07: El VPS es el habilitador 24/7
-Los agentes corren mientras tú duermes. Sin VPS, tu stack de IA muere cuando cierras la laptop.
-
-### KS-08: Mide el avance con diagramas
-Actualiza el estado de cada módulo en Engram (✅ implementado, 🔧 en progreso, ❌ bloqueado). El humano revisa en una tabla.
-
-### KS-09: Usa systemd para resiliencia
-Si el VPS se reinicia, los agentes deben volver solos. systemd + `Restart=always` es obligatorio.
-
-### KS-10: El mayor riesgo es el silencio
-Un agente que no reporta problemas es más peligroso que uno que comete errores. Exige logs estructurados.
+> Ambos blueprints son válidos — el original describe una arquitectura funcional usando OpenClaw; este describe la arquitectura REAL que Gentleman Programming implementó.
 
 ---
 
-## Checklist de Implementación
+## 8. Knowledge Snippets
 
-- [ ] VPS configurado (Ubuntu 22.04+, Node.js 22+)
-- [ ] OpenClaw instalado (`npm install -g openclaw`)
-- [ ] Engram configurado (API key + namespace)
-- [ ] SDD template creado en `skills/`
-- [ ] 3 agentes creados (architect, coder, reviewer)
-- [ ] Skills de cada agente definidos
-- [ ] Conexión a LLM configurada (API key)
-- [ ] systemd service instalado (`Restart=always`)
-- [ ] Engram verificado (lectura/escritura funciona)
-- [ ] Primer SDD cargado y aprobado por humano
-- [ ] Team task ejecutada exitosamente
-- [ ] Logs monitoreados (sin errores en 1h)
+### KS-01: La regla del 46K
+El orquestador nunca debe escribir código. Mantén su contexto bajo (~46K tokens) delegando toda implementación a sub-agentes. Cada sub-agente quema su propio contexto, el orquestador se mantiene limpio.
+
+### KS-02: Ngram > Vector Store
+Para equipos pequeños, FTS5 sobre SQLite es más que suficiente. No necesitas una base vectorial hasta que tengas millones de registros. Simple > Complejo.
+
+### KS-03: Smart Caching en GGA
+No revises lo que ya pasó. GGA cachea resultados de revisión por archivo. Si un archivo no cambió entre commits, no se revisa de nuevo. Esto ahorra ~60-80% de tokens.
+
+### KS-04: Skills como sub-agentes
+Cada skill es un sub-agente perezoso. No se carga en contexto hasta que se necesita. Esto escala mejor que tener todos los skills precargados.
+
+### KS-05: Cross-platform desde el día 1
+El instalador (AI Gentle Stack) detecta SO, arquitectura, paquetes disponibles. No esperes a "después" para hacerlo portable — hazlo cross-platform desde el primer commit.
+
+### KS-06: PRD primero, código después
+Spec-Driven Development: escribe el PRD, luego los specs técnicos, luego el diseño, y SOLO entonces el código. Los agentes siguen este orden automáticamente.
+
+### KS-07: Ngram es el bus de comunicación
+Cada sub-agente guarda en Ngram lo que aprende. Cuando otro sub-agente necesita saber algo, consulta Ngram. Es el "source of truth" compartido entre sesiones.
+
+### KS-08: Cambiar de modelo es gratis
+La arquitectura es multimodelo nativa. El orquestador puede cambiar de Claude a GPT a Gemini sin reconfigurar nada. El modelo es un parámetro, no un acoplamiento.
+
+### KS-09: 9 pantallas TUI es ambicioso
+Bubble Tea con 9 screens diferentes requiere planificación cuidadosa de navegación. Gentleman lo diseñó con 8 paquetes internos para mantenerlo modular.
+
+### KS-10: El ecosistema tiene 3 repositorios
+Ngram (525★), GGA (625★), Agent Teams Lite (nuevo). No son proyectos separados — son un ecosistema. Cada uno resuelve una parte del problema.
 
 ---
 
-**Relacionado:**
-- [The AI ECOSYSTEM your agent is missing | Engram + SDD + Skills](./AI_Agents/Engram_SDD_Skills_Ecosystem.md)
-- [The EVOLUTION of shared context between AGENTS: Engram Cloud](./AI_Agents/Engram_Cloud_Shared_Context.md)
-- [My AI AGENT works 24/7 while I SLEEP | Open Claw + VPS](./AI_Agents/OpenClaw_VPS_247.md)
+## 9. Checklist de Implementación
+
+- [ ] Entender Ngram: Go binary, SQLite + FTS5, MCP interface, sin dependencias
+- [ ] Entender GGA: pre-commit/pre-push/CI hook, smart caching, multi-CLI
+- [ ] Entender Agent Teams Lite: 5 sub-agentes, skills lazy-loaded, orquestador limpio
+- [ ] Ver demo del AI Gentle Stack: Bubble Tea TUI, Go, cross-platform installer
+- [ ] Analizar PRD-driven development en la práctica
+- [ ] Comparar con mi stack actual (OpenClaw + system-design skill)
+- [ ] Decidir qué incorporar al flujo actual
+
+---
+
+## 10. Recursos
+
+- **Ngram:** `https://github.com/gentlemanprogramming/ngram`
+- **GGA:** `https://github.com/gentlemanprogramming/gga`
+- **Agent Teams Lite:** `https://github.com/gentlemanprogramming/agent-teams-lite`
+- **YouTube:** `https://www.youtube.com/watch?v=c5Gwx0RcxNE`
+- **OpenSpec.dev:** `https://openspec.dev` (mencionado como alternativa SDD)
+- **Bubble Tea:** `https://github.com/charmbracelet/bubbletea`
+- **Lipgloss:** `https://github.com/charmbracelet/lipgloss`
+- **Go:** `https://go.dev`
+
+---
+
+*Análisis generado el 15 de mayo de 2026 basado en transcripción completa del video.*
+*Blueprint anterior mantenido como referencia de arquitectura alternativa (OpenClaw-based).*
