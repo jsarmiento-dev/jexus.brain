@@ -1,7 +1,7 @@
 ---
 name: opencode-go-provider
 description: "Configure OpenCode Go as provider en Hermes Agent — API key, modelos disponibles, cambio de modelo."
-version: 1.0.0
+version: 1.1.0
 author: Jesús Sarmiento (jsarmiento)
 license: MIT
 platforms: [linux, macos, windows]
@@ -54,23 +54,60 @@ hermes chat -q "Responde solo: OK" -Q
 
 Nota: Los cambios requieren una nueva sesión (`/reset` o salir y entrar de nuevo).
 
-## Modelos Disponibles
+## Modelos Disponibles (ordenados por capacidad)
 
-| Model ID (para config) | Descripción | Precio input/output por 1M tokens |
-|---|---|---|
-| `opencode-go/deepseek-v4-flash` | Rápido y barato (~31K req/mes) | $0.14 / $0.28 |
-| `opencode-go/deepseek-v4-pro` | Más potente (~3.4K req/mes) | $1.74 / $3.48 |
-| `opencode-go/kimi-k2.7-code` | Especializado en código (~9K req/mes) | $0.95 / $4.00 |
-| `opencode-go/kimi-k2.6` | Kimi v2.6 general (~5.7K req/mes) | $0.95 / $4.00 |
-| `opencode-go/qwen3.7-max` | Qwen máximo (~4.7K req/mes) | $2.50 / $7.50 |
-| `opencode-go/qwen3.7-plus` | Qwen plus (~21K req/mes) | $0.40 / $1.60 |
-| `opencode-go/qwen3.6-plus` | Qwen v3.6 plus (~21K req/mes) | $0.50 / $3.00 |
-| `opencode-go/glm-5.2` | GLM 5.2 (~4.3K req/mes) | $1.40 / $4.40 |
-| `opencode-go/glm-5.1` | GLM 5.1 (~4.3K req/mes) | $1.40 / $4.40 |
-| `opencode-go/mimo-v2.5` | MiMo V2.5 (~150K req/mes) | $0.14 / $0.28 |
-| `opencode-go/mimo-v2.5-pro` | MiMo V2.5 Pro (~16K req/mes) | $1.74 / $3.48 |
-| `opencode-go/minimax-m3` | MiniMax M3 (~16K req/mes) | $0.30 / $1.20 |
-| `opencode-go/minimax-m2.7` | MiniMax M2.7 (~17K req/mes) | $0.30 / $1.20 |
+Los primeros 20 modelos detectados vía API. ID para config: `opencode-go/<model-id>`.
+
+### 🏆 Tier 1 — Frontier (Código complejo + razonamiento profundo)
+
+| # | Modelo | Precio I/O /1M | Capacidad | Límite/mes | Ideal para |
+|---|--------|---------------|-----------|-----------|------------|
+| 1 | `deepseek-v4-pro` | $1.74 / $3.48 | **80.6% SWE-bench**. Top coding complejo. Comparable a Claude Opus. | ~17K req | Código complejo, agentes autónomos, refactors grandes |
+| 2 | `glm-5.2` | $1.40 / $4.40 | **1M contexto**, beats GPT-5.5 en long-horizon coding. #1 Design Arena. | ~4.3K req | Proyectos enormes, contexto completo del codebase |
+| 3 | `kimi-k2.7-code` | $0.95 / $4.00 | **81.1 Kimi Code Bench**. Especialista puro coding. 30% menos thinking tokens que K2.6. | ~9.2K req | Programar, debugging, código agente |
+
+### 🥈 Tier 2 — Fuertes (Muy capaces, versátiles)
+
+| # | Modelo | Precio I/O /1M | Capacidad | Límite/mes | Ideal para |
+|---|--------|---------------|-----------|-----------|------------|
+| 4 | `qwen3.7-max` | $2.50 / $7.50 | Flagship Alibaba. Coding + debugging + workflows + ofimática agente. | ~4.7K req | Tareas variadas, máximo rendimiento general |
+| 5 | `minimax-m3` | $0.30 / $1.20 | **59% SWE-Bench Pro**, 83.5 BrowseComp. Junio 2026. Buen costo/performance. | ~16K req | Coding sólido a bajo precio |
+| 6 | `deepseek-v4-flash` | $0.14 / $0.28 | **79% SWE-bench**. Casi tan bueno como Pro a 1/12 del precio. | ~158K req | **Uso diario** — mejor relación calidad/precio |
+| 7 | `glm-5.1` | $1.40 / $4.40 | Predecesor GLM-5.2. Sólido all-rounder con 1M contexto. | ~4.3K req | Contexto largo sin pagar 5.2 |
+| 8 | `kimi-k2.6` | $0.95 / $4.00 | Multimodal (txt+img). Coding + agente. Predecesor del K2.7. | ~5.7K req | Multimodal + código |
+
+### 🥉 Tier 3 — Buenos (Calidad/precio sólido)
+
+| # | Modelo | Precio I/O /1M | Capacidad | Límite/mes | Ideal para |
+|---|--------|---------------|-----------|-----------|------------|
+| 9 | `mimo-v2.5-pro` | $1.74 / $3.48 | Xiaomi frontier. 42 AA Index. Thinking mode coding. | ~16K req | Coding con razonamiento profundo |
+| 10 | `qwen3.7-plus` | $0.40 / $1.60 | Multimodal (txt+video+img). Mid-size, buena relación. | ~21K req | Tareas multimodales, workflows generales |
+| 11 | `hy3-preview` | Gratis 2 sem | Tencent **295B (A21B)**, 256K contexto, reasoning + agente. | ? | Probar, experimentar gratis |
+| 12 | `minimax-m2.7` | $0.30 / $1.20 | Predecesor M3. Coding sólido a bajo costo. | ~17K req | Backend económico |
+| 13 | `qwen3.6-plus` | $0.50 / $3.00 | Prev-gen Qwen, aún competente. | ~16K req | Tareas generales |
+
+### 🔹 Tier 4 — Económicos (Para volumen, tareas simples)
+
+| # | Modelo | Precio I/O /1M | Capacidad | Límite/mes | Ideal para |
+|---|--------|---------------|-----------|-----------|------------|
+| 14 | `mimo-v2.5` | $0.14 / $0.28 | Barato con **150K req/mes**. | ~150K req | Bulk, tareas repetitivas, batch |
+| 15 | `mimo-v2-pro` | ? | MiMo mid-tier con thinking mode. | ? | Coding ligero con razonamiento |
+| 16 | `qwen3.5-plus` | $0.50 / $3.00 | Qwen generación anterior. | ~16K req | Tareas básicas |
+| 17 | `glm-5` | $1.40 / $4.40 | Entry GLM, 1M contexto. | ~4.3K req | Contexto largo básico |
+| 18 | `mimo-v2-omni` | ? | Multimodal MiMo V2 (txt+img). | ? | Multimodal económico |
+| 19 | `kimi-k2.5` | $0.95 / $4.00 | Kimi generación anterior. | ~5.7K req | Backup código |
+| 20 | `minimax-m2.5` | $0.30 / $1.20 | Entry MiniMax. El más básico. | ~17K req | Tareas muy simples |
+
+### Recomendación rápida
+
+| Para esto | Usa |
+|-----------|------|
+| **Uso diario** 🏆 | `deepseek-v4-flash` — 79% SWE con 158K req/mes |
+| **Código complejo** 🔥 | `deepseek-v4-pro`, `glm-5.2` o `kimi-k2.7-code` |
+| **Proyecto enorme** 📦 | `glm-5.2` — 1M contexto |
+| **Barato + volumen** 💰 | `mimo-v2.5` — $0.14/$0.28, 150K req |
+| **Gratis** 🆓 | `hy3-preview` — 2 semanas gratis |
+| **Multimodal** 🖼️ | `qwen3.7-plus` o `kimi-k2.6` |
 
 ## Cambiar de Modelo
 
